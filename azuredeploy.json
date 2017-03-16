@@ -63,7 +63,7 @@
       },
       "properties": {
         "serverFarmId": "[parameters('hostingPlanName')]",
-        "clientAffinityEnabled": false
+        "clientAffinityEnabled": true
       },
       "resources": [
         {
@@ -80,7 +80,7 @@
                 "physicalPath": "site\\wwwroot\\dist\\website"
               }
             ],
-            "use32BitWorkerProcess": false
+            "use32BitWorkerProcess": true
           }
         },
         {
@@ -92,7 +92,7 @@
             "[concat('Microsoft.Web/Sites/', parameters('siteName'), '/config/web')]"
           ],
           "properties": {
-            "NPM_CONFIG_BUNDLER": "rollup",
+            "NPM_CONFIG_BUNDLER": "webpack",
             "WEBSITE_NODE_DEFAULT_VERSION": "6.9.1"
           }
         },

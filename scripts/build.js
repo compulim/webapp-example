@@ -124,13 +124,15 @@ module.exports = function (gulp) {
         'process.env': {
           NODE_ENV: JSON.stringify('production')
         }
-      // }),
-      // new Webpack.optimize.UglifyJsPlugin({
-      //   compress: {
-      //     screw_ie8: false,
-      //     warnings : false
-      //   },
-      //   mangle: false
+      }),
+      new Webpack.optimize.UglifyJsPlugin({
+        compress: {
+          screw_ie8: false,
+          warnings : false
+        },
+        mangle: {
+          screw_ie8: false
+        }
       })
     );
 
@@ -166,7 +168,9 @@ module.exports = function (gulp) {
           compress: {
             screw_ie8: false
           },
-          mangle: false
+          mangle: {
+            screw_ie8: false
+          }
         }))
         .pipe(sourcemaps.write('.'));
     } else {

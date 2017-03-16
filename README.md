@@ -192,6 +192,7 @@ These are items we are working on or under consideration:
   * [x] ~~Uglify Webpack build~~
 * [x] Steps to deploy from [VSTS Release Management](https://www.visualstudio.com/en-us/features/release-management-vs.aspx)
 * [x] ~~Try out on [App Service for Linux](https://docs.microsoft.com/en-us/azure/app-service-web/app-service-linux-intro)~~
+* [ ] Upgrade to [Webpack 2](https://github.com/webpack/webpack)
 * [ ] Include [Jest](https://facebook.github.io/jest/) and `npm test` script
 * [ ] Consider [glamor](https://npmjs.com/package/glamor) for CSS bundling
 * [ ] Consider [restify](https://restify.com) in addition to [Express](https://expressjs.com)
@@ -218,6 +219,33 @@ Originally, we planned to have a single `package.json` and packages for server c
   * `--ignore-scripts` broke some packages, e.g. `optipng-bin`
 
 Thus, we decided to have two `package.json`, one in [root](package.json) for browser code (e.g. Babel + React), another in [`lib`](lib/packages.json) for server code.
+
+## Roadblock on enabling hot module replacement on Internet Explorer 8
+
+We tried very hard to bring hot module replacement to IE8 but it deemed impossible. We learnt a few things though:
+
+* For [`react`](https://npmjs.com/packages/react) and [`react-dom`](https://npmjs.com/packages/react-dom), use `^0.14` instead of `>=15.0` because React discontinued IE8 support in `15.0`
+* Because we prefer CDN version of React to reduce the size of `bundle.js`, we need to add [`es5-shim`](https://github.com/es-shims/es5-shim) and [`es5-sham`](https://github.com/es-shims/es5-shim), and optionally, [`console-polyfill`](https://github.com/paulmillr/console-polyfill)
+* [UglifyJS](https://github.com/mishoo/UglifyJS) will break IE8 unless `{ "screw_ie8": false }` in both `compress` and `mangle` section
+  * Even we set `screw_ie8` in `mangle`, sometimes, mangle will still break IE8
+* JavaScript files under `node_modules/**/*.js` might use reserved keywords, e.g. `default`, `catch`, etc
+  * [`webpack/hot/only-dev-server.js`](https://github.com/webpack/webpack/blob/master/hot/only-dev-server.js) refer to `Promise.catch()` which need to be escaped as `Promise['catch']()`
+  * We need to use Babel with the following plugins:
+    * [`transform-es3-member-expression-literals`](https://npmjs.com/packages/transform-es3-member-expression-literals)
+    * [`transform-es3-property-literals`](https://npmjs.com/packages/transform-es3-property-literals)
+    * Optionally, [`transform-node-env-inline`](https://npmjs.com/packages/transform-node-env-inline), for downsizing the codebase
+* Getter/setter were referenced by [`webpack/lib/HotModuleReplacement.runtime.js`](https://github.com/webpack/webpack/blob/master/lib/HotModuleReplacement.runtime.js)
+  * Getter/setter are not supported in IE8 and Babel
+
+We need to modify `index.html` and use the following IE8-compatible libraries.
+
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.9/es5-shim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.9/es5-sham.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/console-polyfill/0.2.3/index.min.js"></script>
+<script src="https://unpkg.com/react@0.14/dist/react.min.js"></script>
+<script src="https://unpkg.com/react-dom@0.14/dist/react-dom.min.js"></script>
+```
 
 # FAQs
 

@@ -16,20 +16,15 @@ export default class Summation extends React.Component {
 
   handleValueYChange(evt) {
     this.props.onYChange(+evt.target.value);
-
-    new Promise().then(err => {
-      console.log('ABCDDD');
-    }).catch(err => {
-    });
   }
 
   render() {
     return (
       <div>
         <input type="number" onChange={ this.handleValueXChange } value={ this.props.x } />
-        <span>&nbsp;&times;&nbsp;</span>
+        <span>&times;</span>
         <input type="number" onChange={ this.handleValueYChange } value={ this.props.y } />
-        <span>&nbsp;=&nbsp;</span>
+        <span>=</span>
         <input type="number" readOnly value={ this.props.x + this.props.y } />
       </div>
     );
