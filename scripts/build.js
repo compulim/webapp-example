@@ -3,9 +3,9 @@
 const buffer     = require('vinyl-buffer');
 const config     = require('../config');
 const del        = require('del');
-// const filter     = require('gulp-filter');
-// const htmlmin    = require('gulp-htmlmin');
-// const imagemin   = require('gulp-imagemin');
+const filter     = require('gulp-filter');
+const htmlmin    = require('gulp-htmlmin');
+const imagemin   = require('gulp-imagemin');
 const install    = require('gulp-install');
 const rename     = require('gulp-rename');
 const rollup     = require('rollup-stream');
@@ -24,25 +24,15 @@ module.exports = function (gulp) {
     'build:asset',
     'build:bundle',
     'build:config',
-    'build:lib'
+    'build:lib',
+    'build:package'
   ], build);
 
   gulp.task('build:asset', buildAsset);
   gulp.task('build:bundle', buildBundle);
   gulp.task('build:config', buildConfig);
   gulp.task('build:lib', buildLib);
-
-  gulp.task('rebuild', [
-    'rebuild:asset',
-    'rebuild:bundle',
-    'rebuild:config',
-    'rebuild:lib'
-  ], build);
-
-  gulp.task('rebuild:asset', ['clean:website'], buildAsset);
-  gulp.task('rebuild:bundle', ['clean:website'], buildBundle);
-  gulp.task('rebuild:config', ['clean:website'], buildConfig);
-  gulp.task('rebuild:lib', ['clean:website'], buildLib);
+  gulp.task('build:package', ['build:lib'], buildPackage);
 
   function build() {
     log('build', `Build with ${ magenta(process.env.NODE_ENV) } favor outputted to ${ prettyPath(config.DEST_WEBSITE_DIR) }`);
@@ -51,17 +41,20 @@ module.exports = function (gulp) {
   function buildAsset() {
     log('build:asset', `Copying content from ${ prettyPath(config.SOURCE_STATIC_FILES_DIR) } to ${ prettyPath(config.DEST_WEBSITE_STATIC_FILES_DIR) }`);
 
-    // const htmlFilter = filter(['*.htm', '*.html'], { restore: true });
-    // const imageFilter = filter(['*.gif', '*.jpg', '*.png'], { restore: true });
+    const htmlFilter = filter(['**/*.htm', '**/*.html'], { restore: true });
+    const imageFilter = filter(['**/*.gif', '**/*.jpg', '**/*.png', '**/*.svg'], { restore: true });
 
     return gulp
       .src(join(config.SOURCE_STATIC_FILES_DIR, '**'))
-      // .pipe(htmlFilter)
-      // .pipe(htmlmin())
-      // .pipe(htmlFilter.restore)
-      // .pipe(imageFilter)
-      // .pipe(imagemin())
-      // .pipe(imageFilter.restore)
+
+      .pipe(htmlFilter)
+      .pipe(htmlmin())
+      .pipe(htmlFilter.restore)
+
+      .pipe(imageFilter)
+      .pipe(imagemin())
+      .pipe(imageFilter.restore)
+
       .pipe(gulp.dest(config.DEST_WEBSITE_STATIC_FILES_DIR));
   }
 
@@ -71,16 +64,12 @@ module.exports = function (gulp) {
     return gulp
       .src(
         [
+          'config.js',
           'iisnode.yml',
-          'package.json',
           'web.config'
         ].map(filename => join(config.SOURCE_DIR, filename))
       )
-      .pipe(gulp.dest(config.DEST_WEBSITE_DIR))
-      .pipe(install({
-        ignoreScripts: true,
-        production: true
-      }));
+      .pipe(gulp.dest(config.DEST_WEBSITE_DIR));
   }
 
   function buildLib() {
@@ -88,14 +77,24 @@ module.exports = function (gulp) {
 
     return gulp
       .src([
-        // `${ join(config.SOURCE_DIR, 'app.js') }`,
         `${ config.SOURCE_SERVER_DIR }/**`
-      ], { base: config.SOURCE_DIR })
-      .pipe(gulp.dest(config.DEST_WEBSITE_DIR));
+      ])
+      .pipe(gulp.dest(config.DEST_WEBSITE_SERVER_DIR));
+  }
+
+  function buildPackage() {
+    log('build:package', 'Installing npm packages');
+
+    return gulp
+      .src([
+        `${ config.SOURCE_SERVER_DIR }/package.json`
+      ])
+      .pipe(gulp.dest(config.DEST_WEBSITE_SERVER_DIR))
+      .pipe(install({ production: true }));
   }
 
   function buildBundle() {
-    if (process.env.BUNDLER === 'webpack') {
+    if (process.env.NPM_CONFIG_BUNDLER === 'webpack') {
       log('build:bundle', `Bundling with ${ magenta('Webpack') }`);
 
       return buildWebpack();
@@ -125,11 +124,13 @@ module.exports = function (gulp) {
         'process.env': {
           NODE_ENV: JSON.stringify('production')
         }
-      }),
-      new Webpack.optimize.UglifyJsPlugin({
-        compress: {
-          warnings: false
-        }
+      // }),
+      // new Webpack.optimize.UglifyJsPlugin({
+      //   compress: {
+      //     screw_ie8: false,
+      //     warnings : false
+      //   },
+      //   mangle: false
       })
     );
 
@@ -161,7 +162,12 @@ module.exports = function (gulp) {
 
       workflow = workflow
         .pipe(sourcemaps.init({ loadMaps: true }))
-        .pipe(uglify())
+        .pipe(uglify({
+          compress: {
+            screw_ie8: false
+          },
+          mangle: false
+        }))
         .pipe(sourcemaps.write('.'));
     } else {
       workflow = workflow.pipe(uglify());
