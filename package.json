@@ -19,7 +19,7 @@
     "postinstall": "cd lib && npm install --production && cd .. && gulp build",
     "rebuild": "gulp rebuild",
     "repack": "gulp repack",
-    "start": "node lib/app.js"
+    "start": "node ."
   },
   "dependencies": {
     "babel-core": "^6.18.2",
