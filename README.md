@@ -25,6 +25,7 @@ But everyone build and promote their own build process. There are few reasons yo
     * Thru [continuous deployment](https://azure.microsoft.com/en-us/blog/using-app-service-web-apps-continuous-deployment-with-github-organizations/)
     * Thru [VSTS Release Management](https://www.visualstudio.com/en-us/features/release-management-vs.aspx)
     * Thru [MSDeploy](https://azure.microsoft.com/en-us/blog/simple-azure-websites-deployment/)
+  * Node.js on [Docker](https://docker.com/)
   * On-premise or hosted IIS
 
 # Try it out in 3 easy steps
@@ -44,12 +45,13 @@ But everyone build and promote their own build process. There are few reasons yo
 5. Deploy to target servers
    * Standalone Node.js
    * [Azure App Service](https://azure.microsoft.com/en-us/services/app-service/web/)
+   * Node.js on Docker
    * On-premise or hosted IIS
 6. Update the scaffolding
 
 ## Create a new Web App Project
 
-> For the very first time, run `npm install -g yo generator-azure-web-app` to install [Yeoman](https://yeoman.io/) and our scaffold.
+> For the very first time, run `npm install -g yo generator-azure-web-app` to install [Yeoman](https://yeoman.io/) and our scaffolding.
 
 Run `yo azure-web-app` to create a new project.
 
@@ -78,14 +80,18 @@ Run `npm start`, the development server will listen to port 80 and available at 
 
 Run `npm run build`, to bundle JavaScript files, crush images, etc. It outputs to `dist/website/`.
 
-> Instead of [Webpack](https://webpack.github.io/) used in development, you can opt for [Rollup](https://rollupjs.org/) as bundler for production, it has better tree-shaking mechanism, thus smaller output file size.
+### Optional: Using Rollup as bundler in production mode
+
+Instead of [Webpack](https://webpack.github.io/) used in development, you can opt for [Rollup](https://rollupjs.org/) as bundler for production, it has better tree-shaking mechanism, thus smaller output file size.
+
+> Using rollup as bundler is experimental. Please file us an [issue](https://github.com/compulim/generator-azure-web-app/issues) if you run into any problems.
 
 There are few ways to select your bundler:
 
 * Run `npm run build -- --bundler rollup` for one-time switch
 * Set environment variable `NPM_CONFIG_BUNDLER` to `rollup` or `webpack`
 * Modify [`.npmrc`](.npmrc) and set `bundler = "rollup"`
-* During Yeoman scaffolding, set bundler to `rollup`
+* During Yeoman scaffold, set bundler to `rollup`
 
 ## Deployment
 
@@ -96,6 +102,7 @@ The project supports multiple deployment scenarios, we will cover each separatel
   * Thru [continuous deployment](https://azure.microsoft.com/en-us/blog/using-app-service-web-apps-continuous-deployment-with-github-organizations/)
   * Thru [VSTS Release Management](https://www.visualstudio.com/en-us/features/release-management-vs.aspx)
   * Thru [MSDeploy](https://azure.microsoft.com/en-us/blog/simple-azure-websites-deployment/)
+* Node.js on [Docker](https://docker.com/)
 * IIS with [iisnode](https://github.com/tjanczuk/iisnode)
 
 > Don't forget to build your project before deployment, run `npm run build`.
@@ -139,9 +146,20 @@ If you use CI/CD tools other than Azure and VSTS, you may want to integrate with
 1. Run `npm run build` to build the project
 2. Run `npm run pack` to pack the deployment as a MSDeploy ZIP file
 3. Download publish settings file, either from [Azure Dashboard](https://portal.azure.com/) or using [Azure PowerShell](https://msdn.microsoft.com/en-us/library/dn385850(v=nav.70).aspx)
-4. Run `npm run deploy --publish-settings=yoursite.PublishSettings` to deploy with MSDeploy
+4. Run `npm run deploy -- --publish-settings=yoursite.PublishSettings` to deploy with MSDeploy
 
 > To use a specific version of Node.js, don't forget to modify [`iisnode.yml`](iisnode.yml) manually.
+
+### Deploy to Docker
+
+If you use Docker for deployment, depends on your scenario, you can select one of the supported Docker image types:
+
+* [Official Node.js](https://hub.docker.com/r/_/node/)
+* [Official Node.js](https://hub.docker.com/r/_/node/) on [Alpine Linux](https://hub.docker.com/r/_/alpine/)
+* [Windows Server 2016 Nano Server](https://hub.docker.com/r/compulim/nanoserver-node/) with bare Node.js
+* [Windows Server 2016 Server Core](https://hub.docker.com/r/compulim/iisnode/) with Node.js and iisnode
+
+Run `docker build .` at the project root to build your docker image.
 
 ### Deploy to IIS
 
@@ -166,14 +184,42 @@ The following MSDeploy command-line switches can be used to deploy the package t
   -setParam:name="IIS Web Application Name",value="<appname>"
 ```
 
-## Update the scaffold
+## Update the scaffolding
 
-We update our scaffold from time to time. To update your existing project:
-
-1. `npm install generator-azure-web-app` to update to latest version of scaffold
-2. `yo azure-web-app` to update the scaffold
+We update our scaffolding from time to time. To update your existing project, rerun `yo azure-web-app` and scaffold again. Yeoman will automatically the scaffolding from npm.
 
 > Don't worry, Yeoman will prompt to overwrite a file if it should be replaced.
+
+## Support Internet Explorer 8
+
+Although the user base of IE8 is fading, in some cases, you may still need to support older browsers.
+
+### Disable hot module replacement on development server
+
+Run `npm start -- --hot false` to start a development server without hot module replacement.
+
+### Use `react@^0.14` and add `es5-shim`
+
+You can copy the following code into `index.html`.
+
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.9/es5-shim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.9/es5-sham.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/console-polyfill/0.2.3/index.min.js"></script>
+<script src="https://unpkg.com/react@0.14/dist/react.min.js"></script>
+<script src="https://unpkg.com/react-dom@0.14/dist/react-dom.min.js"></script>
+```
+
+### Look for IE8-friendly NPM packages
+
+Some NPM packages are not IE8 friendly. For example, [`fetch`](https://npmjs.com/package/fetch) does not support IE8. You may need to use [`fetch-ie8`](https://www.npmjs.com/package/fetch-ie8) instead.
+
+Moreoever, some packages might be pre-transpiled, they might not have reserved keywords properly escaped. There are two ways to tackle this issue:
+
+* Contact package developer and kindly ask them to either
+  * Add [`module`](https://github.com/rollup/rollup/wiki/pkg.module) in `package.json` and reference to non-transpiled version of code, or,
+  * Escape reserved keywords during transpilation
+* Use Webpack instead of Rollup: our Webpack workflow is configured to escape reserved keywords even in `node_modules/` folder
 
 # Roadmap
 
@@ -190,9 +236,14 @@ These are items we are working on or under consideration:
 * [x] ~~Uglify production `bundle.js`~~
   * [x] ~~Uglify Rollup build~~
   * [x] ~~Uglify Webpack build~~
-* [x] Steps to deploy from [VSTS Release Management](https://www.visualstudio.com/en-us/features/release-management-vs.aspx)
+* [x] ~~Steps to deploy from [VSTS Release Management](https://www.visualstudio.com/en-us/features/release-management-vs.aspx)~~
 * [x] ~~Try out on [App Service for Linux](https://docs.microsoft.com/en-us/azure/app-service-web/app-service-linux-intro)~~
-* [ ] Upgrade to [Webpack 2](https://github.com/webpack/webpack)
+* [x] ~~Upgrade to [Webpack 2](https://github.com/webpack/webpack)~~
+* [ ] Move development server code out of `/dist`
+* [ ] Reduce the codebase
+  * [x] ~~Move to a popular configuration package, e.g. [config](https://npmjs.com/package/config)~~
+  * [ ] Consider remove `gulp clean` and `gulp rebuild`
+* [ ] Sample code for server-side rendering
 * [ ] Include [Jest](https://facebook.github.io/jest/) and `npm test` script
 * [ ] Consider [glamor](https://npmjs.com/package/glamor) for CSS bundling
 * [ ] Consider [restify](https://restify.com) in addition to [Express](https://expressjs.com)
@@ -211,7 +262,7 @@ Originally, we planned to have a single `package.json` and packages for server c
 
 * We want to separate list of server-only packages
   * This helps minimize the final output file size, i.e. no Webpack or Babel in server-only packages
-* Azure Web App deployment script (a.k.a. `deploy.cmd`) will run `npm install --production` only
+* But the problem is, Azure Web App deployment script (a.k.a. `deploy.cmd`) will run `npm install --production` only
   * We don't want to customize deployment script and maintain versions of `deploy.cmd`
   * We need to build browser code and we need to run `npm install --only=development` on `postinstall`
   * Thus, we need to use `--ignore-scripts` to hack
@@ -226,34 +277,38 @@ We tried very hard to bring hot module replacement to IE8 but it deemed impossib
 
 * For [`react`](https://npmjs.com/packages/react) and [`react-dom`](https://npmjs.com/packages/react-dom), use `^0.14` instead of `>=15.0` because React discontinued IE8 support in `15.0`
 * Because we prefer CDN version of React to reduce the size of `bundle.js`, we need to add [`es5-shim`](https://github.com/es-shims/es5-shim) and [`es5-sham`](https://github.com/es-shims/es5-shim), and optionally, [`console-polyfill`](https://github.com/paulmillr/console-polyfill)
-* [UglifyJS](https://github.com/mishoo/UglifyJS) will break IE8 unless `{ "screw_ie8": false }` in both `compress` and `mangle` section
-  * Even we set `screw_ie8` in `mangle`, sometimes, mangle will still break IE8
+* [UglifyJS](https://github.com/mishoo/UglifyJS) will break IE8 unless `{ "screw_ie8": false }` in `compress`, `mangle`, and `output` section
+  * (TBC) Even we set `screw_ie8` in `mangle`, sometimes, mangle will still break IE8
 * JavaScript files under `node_modules/**/*.js` might use reserved keywords, e.g. `default`, `catch`, etc
   * [`webpack/hot/only-dev-server.js`](https://github.com/webpack/webpack/blob/master/hot/only-dev-server.js) refer to `Promise.catch()` which need to be escaped as `Promise['catch']()`
   * We need to use Babel with the following plugins:
     * [`transform-es3-member-expression-literals`](https://npmjs.com/packages/transform-es3-member-expression-literals)
     * [`transform-es3-property-literals`](https://npmjs.com/packages/transform-es3-property-literals)
     * Optionally, [`transform-node-env-inline`](https://npmjs.com/packages/transform-node-env-inline), for downsizing the codebase
-* Getter/setter were referenced by [`webpack/lib/HotModuleReplacement.runtime.js`](https://github.com/webpack/webpack/blob/master/lib/HotModuleReplacement.runtime.js)
+* Getter/setter were used by [`webpack/lib/HotModuleReplacement.runtime.js`](https://github.com/webpack/webpack/blob/master/lib/HotModuleReplacement.runtime.js)
+  * We guess HMR use getter/setter intensively to keep the internal state of the object away from the object, so the object can be easily replaced without resetting the internal state
   * Getter/setter are not supported in IE8 and Babel
-
-We need to modify `index.html` and use the following IE8-compatible libraries.
-
-```html
-<script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.9/es5-shim.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.5.9/es5-sham.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/console-polyfill/0.2.3/index.min.js"></script>
-<script src="https://unpkg.com/react@0.14/dist/react.min.js"></script>
-<script src="https://unpkg.com/react-dom@0.14/dist/react-dom.min.js"></script>
-```
 
 # FAQs
 
 1. After deploying to Azure Web App, it say directory browsing is not allowed.
    * During first deployment, do not browse to the web site until the deployment is ready. Otherwise, it will show 404, until you restart the server.
+2. How about CSS/[LESS](http://lesscss.org)/[SASS](http://sass-lang.com/)?
+   * We believe bundler should only bundle JS files and not CSS or other assets. Thus, we did not preconfigure the scaffolding with [`style-loader`](https://www.npmjs.com/package/style-loader)
+   * For modern CSS inlining, we prefer [`glamor`](https://npmjs.com/package/glamor) or [`aphrodite`](https://npmjs.com/package/aphrodite). Please note that IE8 might not work with these modern CSS inliners
 
 # Contributions
 
 Like us? [Star](https://github.com/compulim/generator-azure-web-app/stargazers) us.
 
 Want to make it better? File an [issue](https://github.com/compulim/generator-azure-web-app/issues) to us.
+
+## Working on this scaffolding
+
+If you want to develop or debug this scaffolding, follow these steps:
+
+1. Run `npm uninstall generator-azure-web-app -g` to uninstall any installed scaffolding
+2. Run `git clone https://github.com/compulim/generator-azure-web-app.git` to clone the repository
+3. Run `npm link .` to link-install this copy, instead of the official one from npm registry
+
+Next time, when you run Yeoman to generate a new `azure-web-app` project, it will use your copy of scaffolding you cloned.

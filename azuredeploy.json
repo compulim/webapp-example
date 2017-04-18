@@ -63,7 +63,7 @@
       },
       "properties": {
         "serverFarmId": "[parameters('hostingPlanName')]",
-        "clientAffinityEnabled": true
+        "clientAffinityEnabled": false
       },
       "resources": [
         {
@@ -93,6 +93,7 @@
           ],
           "properties": {
             "NPM_CONFIG_BUNDLER": "webpack",
+            "RUNNING_ON_AZURE": "true",
             "WEBSITE_NODE_DEFAULT_VERSION": "6.9.1"
           }
         },
